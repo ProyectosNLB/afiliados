@@ -1,27 +1,30 @@
-// script.js - Lector de DNI Argentino Mejorado
-// Ajuste rectangular del área de escaneo para el QR del DNI Argentino
-// Corrección de mapeo de campos y eliminación de nacionalidad
+// script.js - Lector de DNI Argentino PDF417
+// Requiere ZXing-js (PDF417 compatible)
 
-// Referencias a elementos del DOM
-const html5QrCode = new Html5Qrcode("reader");
+const { ZXingBrowser } = window.ZXing;
+const { BrowserMultiFormatReader, BarcodeFormat } = ZXing;
+
 const startButton = document.getElementById("startButton");
 const stopButton = document.getElementById("stopButton");
 const resultDiv = document.getElementById("result");
 const dataDisplay = document.getElementById("dataDisplay");
 const submitButton = document.getElementById("submitButton");
 const loadingDiv = document.getElementById("loading");
+const video = document.getElementById("video");
 
-// Variables para almacenar los datos del DNI
+let codeReader;
+let selectedDeviceId = null;
+let scanning = false;
 let dniData = {};
 
-// Configuración del escáner
-// Área de escaneo rectangular y horizontal, alineada a la forma y proporción del QR del DNI argentino
-const config = { 
-    fps: 10,
-    qrbox: { width: 250, height: 80 } // Rectangular horizontal, abarca el código QR del DNI
-};
+function mostrarCarga(mostrar) {
+    loadingDiv.hidden = !mostrar;
+}
 
-// Función para validar los campos del DNI
+function actualizarBotonEnviar(valido) {
+    submitButton.disabled = !valido;
+}
+
 function validarCampos(campos) {
     return (
         campos.length >= 6 &&
@@ -32,119 +35,88 @@ function validarCampos(campos) {
     );
 }
 
-// Habilita o deshabilita el botón "Enviar" según los datos
-function actualizarBotonEnviar(valido) {
-    submitButton.disabled = !valido;
+function parsearPDF417(text) {
+    // El PDF417 del DNI argentino es: Apellido@Nombre@Sexo@DNI@Nacionalidad@FechaNac@Ejemplar@FechaEmision@FechaVencimiento@Tramite
+    const campos = text.split("@");
+    if (!validarCampos(campos)) return null;
+    return {
+        apellido: campos[0]?.trim() || "",
+        nombre: campos[1]?.trim() || "",
+        dni: campos[3]?.trim() || "",
+        fechaNacimiento: /^\d{8}$/.test(campos[5])
+            ? `${campos[5].substring(0,4)}-${campos[5].substring(4,6)}-${campos[5].substring(6,8)}`
+            : "Fecha inválida"
+    };
 }
 
-// Muestra u oculta el indicador de carga
-function mostrarCarga(mostrar) {
-    loadingDiv.hidden = !mostrar;
-}
+// Escaneo y procesamiento
+async function iniciarEscaneo() {
+    mostrarCarga(true);
+    stopButton.disabled = false;
+    startButton.disabled = true;
+    resultDiv.textContent = "Escaneando...";
+    dataDisplay.style.display = "none";
+    actualizarBotonEnviar(false);
 
-// Maneja el escaneo exitoso
-function onScanSuccess(decodedText, decodedResult) {
-    html5QrCode.stop().then(() => {
+    codeReader = new BrowserMultiFormatReader();
+    try {
+        const devices = await codeReader.listVideoInputDevices();
+        selectedDeviceId = devices[0].deviceId;
+
+        codeReader.decodeFromVideoDevice(
+            selectedDeviceId,
+            video,
+            (result, err) => {
+                if (result) {
+                    scanning = false;
+                    detenerEscaneo();
+                    const campos = parsearPDF417(result.getText());
+                    if (campos) {
+                        dniData = campos;
+                        document.getElementById("apellido").textContent = dniData.apellido;
+                        document.getElementById("nombre").textContent = dniData.nombre;
+                        document.getElementById("dni").textContent = dniData.dni;
+                        document.getElementById("fecha").textContent = dniData.fechaNacimiento;
+                        dataDisplay.style.display = "block";
+                        actualizarBotonEnviar(true);
+                        resultDiv.innerHTML = "<strong>DNI escaneado correctamente:</strong> Verifique los datos antes de enviar.";
+                    } else {
+                        resultDiv.innerHTML = "<strong>Error:</strong> El formato del código PDF417 no corresponde a un DNI argentino.";
+                        dataDisplay.style.display = "none";
+                        actualizarBotonEnviar(false);
+                    }
+                }
+            },
+            { formats: [BarcodeFormat.PDF_417] }
+        );
+        scanning = true;
+        mostrarCarga(false);
+    } catch (err) {
+        mostrarCarga(false);
+        resultDiv.textContent = "Error al iniciar la cámara: " + err;
         startButton.disabled = false;
         stopButton.disabled = true;
-        mostrarCarga(false);
-
-        try {
-            const campos = decodedText.split("@");
-            if (validarCampos(campos)) {
-                dniData = {
-                    apellido: campos[0]?.trim() || "",
-                    nombre: campos[1]?.trim() || "",
-                    dni: campos[3]?.trim() || "",
-                    fechaNacimiento: /^\d{8}$/.test(campos[5]) 
-                        ? `${campos[5].substring(0,4)}-${campos[5].substring(4,6)}-${campos[5].substring(6,8)}`
-                        : "Fecha inválida"
-                };
-
-                // Mostrar los datos en la tabla
-                document.getElementById("apellido").textContent = dniData.apellido;
-                document.getElementById("nombre").textContent = dniData.nombre;
-                document.getElementById("dni").textContent = dniData.dni;
-                document.getElementById("fecha").textContent = dniData.fechaNacimiento;
-
-                // Mostrar la sección de datos y habilitar "Enviar"
-                dataDisplay.style.display = "block";
-                actualizarBotonEnviar(true);
-
-                resultDiv.innerHTML = "<strong>DNI escaneado correctamente:</strong> Verifique los datos antes de enviar.";
-            } else {
-                resultDiv.innerHTML = "<strong>Error:</strong> El formato del QR no coincide con un DNI argentino.";
-                dataDisplay.style.display = "none";
-                actualizarBotonEnviar(false);
-            }
-        } catch (error) {
-            console.error("Error al procesar el QR:", error);
-            resultDiv.innerHTML = `<strong>Error al procesar el QR:</strong> ${error.message}`;
-            dataDisplay.style.display = "none";
-            actualizarBotonEnviar(false);
-        }
-    }).catch(error => {
-        console.error("Error al detener el escáner tras escaneo:", error);
-        resultDiv.innerHTML = `<strong>Error al detener el escáner:</strong> ${error.message}`;
-    });
+    }
 }
 
-// Maneja errores del escaneo (no se muestra al usuario para no ser intrusivo)
-function onScanError(errorMessage) {
-    // Puedes descomentar la siguiente línea para depurar:
-    // console.warn("Escaneo fallido:", errorMessage);
+function detenerEscaneo() {
+    if (codeReader && scanning) {
+        codeReader.reset();
+    }
+    startButton.disabled = false;
+    stopButton.disabled = true;
+    mostrarCarga(false);
 }
 
-// Iniciar escaneo
 startButton.addEventListener("click", () => {
-    mostrarCarga(true);
-    Html5Qrcode.getCameras().then(devices => {
-        if (devices && devices.length) {
-            // Usar cámara trasera si existe
-            const cameraId = devices.find(device => 
-                device.label.toLowerCase().includes("back"))?.id || devices[0].id;
-
-            html5QrCode.start(
-                cameraId,
-                config,
-                onScanSuccess,
-                onScanError
-            ).then(() => {
-                startButton.disabled = true;
-                stopButton.disabled = false;
-                dataDisplay.style.display = "none";
-                actualizarBotonEnviar(false);
-                resultDiv.textContent = "Escaneando...";
-                mostrarCarga(false);
-            }).catch(err => {
-                mostrarCarga(false);
-                resultDiv.innerHTML = "Error al iniciar el escáner: " + err;
-            });
-        } else {
-            mostrarCarga(false);
-            resultDiv.textContent = "No se encontraron cámaras disponibles.";
-        }
-    }).catch(err => {
-        mostrarCarga(false);
-        resultDiv.textContent = "Error al acceder a la cámara: " + err;
-    });
+    iniciarEscaneo();
 });
 
-// Detener escaneo
 stopButton.addEventListener("click", () => {
-    mostrarCarga(true);
-    html5QrCode.stop().then(() => {
-        startButton.disabled = false;
-        stopButton.disabled = true;
-        resultDiv.textContent = "Escaneo detenido.";
-        mostrarCarga(false);
-    }).catch(err => {
-        mostrarCarga(false);
-        resultDiv.textContent = "Error al detener el escáner: " + err;
-    });
+    detenerEscaneo();
+    resultDiv.textContent = "Escaneo detenido.";
 });
 
-// Enviar datos al formulario de Google
 submitButton.addEventListener("click", () => {
     if (dniData.apellido && dniData.nombre && dniData.dni && dniData.fechaNacimiento) {
         // Construir la URL del formulario con los datos
@@ -159,4 +131,9 @@ submitButton.addEventListener("click", () => {
     } else {
         resultDiv.innerHTML = "<strong>Error:</strong> No hay datos válidos para enviar.";
     }
+});
+
+// Limpieza al salir
+window.addEventListener("beforeunload", () => {
+    if (codeReader) codeReader.reset();
 });
