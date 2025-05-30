@@ -1,5 +1,10 @@
 // script.js - Lector de DNI Argentino PDF417
-// Selecciona la cámara trasera/de mayor capacidad por defecto
+// Mejoras: 
+// - Usa el nodo real <video> en ZXing (no solo el id)
+// - Inicializa el stream manualmente para asegurar video visible
+// - Detiene correctamente el stream al finalizar
+// - Selecciona cámara trasera/de mayor capacidad si está disponible
+// - Mayor robustez y mensajes de error claros
 
 const { ZXingBrowser } = window.ZXing;
 const { BrowserMultiFormatReader, BarcodeFormat } = ZXing;
@@ -13,6 +18,7 @@ const loadingDiv = document.getElementById("loading");
 const video = document.getElementById("video");
 
 let codeReader;
+let currentStream;
 let selectedDeviceId = null;
 let scanning = false;
 let dniData = {};
@@ -51,7 +57,6 @@ function parsearPDF417(text) {
 
 // Selecciona la cámara trasera o la de mayor resolución
 async function seleccionarMejorCamara(devices) {
-    // Prioriza etiquetas con 'back', 'trasera', 'rear', o 'environment'
     let backCams = devices.filter(d =>
         /back|trasera|rear|environment/i.test(d.label)
     );
@@ -69,7 +74,7 @@ async function seleccionarMejorCamara(devices) {
     return sorted[0].deviceId;
 }
 
-// Escaneo y procesamiento
+// Inicializa manualmente el stream de la cámara y luego ZXing
 async function iniciarEscaneo() {
     mostrarCarga(true);
     stopButton.disabled = false;
@@ -84,9 +89,20 @@ async function iniciarEscaneo() {
         if (!devices || devices.length === 0) throw new Error("No se encontraron cámaras.");
         selectedDeviceId = await seleccionarMejorCamara(devices);
 
+        // Primero: inicializa el stream manualmente (depuración y compatibilidad)
+        if (currentStream) {
+            currentStream.getTracks().forEach(track => track.stop());
+            currentStream = null;
+        }
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: selectedDeviceId } } });
+        video.srcObject = stream;
+        await video.play();
+        currentStream = stream;
+
+        // Luego: ZXing usando el nodo real <video>
         codeReader.decodeFromVideoDevice(
             selectedDeviceId,
-            video,
+            video, // nodo real, NO string id
             (result, err) => {
                 if (result) {
                     scanning = false;
@@ -121,8 +137,10 @@ async function iniciarEscaneo() {
 }
 
 function detenerEscaneo() {
-    if (codeReader && scanning) {
-        codeReader.reset();
+    if (codeReader) codeReader.reset();
+    if (currentStream) {
+        currentStream.getTracks().forEach(track => track.stop());
+        currentStream = null;
     }
     startButton.disabled = false;
     stopButton.disabled = true;
@@ -157,4 +175,8 @@ submitButton.addEventListener("click", () => {
 // Limpieza al salir
 window.addEventListener("beforeunload", () => {
     if (codeReader) codeReader.reset();
+    if (currentStream) {
+        currentStream.getTracks().forEach(track => track.stop());
+        currentStream = null;
+    }
 });
