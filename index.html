@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lector de DNI Argentino</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+</head>
+<body>
+    <main>
+        <h1>Lector de DNI Argentino</h1>
+        
+        <section class="instructions" aria-label="Instrucciones de uso">
+            <h2>Instrucciones:</h2>
+            <ol>
+                <li>Haz clic en <strong>Iniciar Escaneo</strong> para activar la cámara.</li>
+                <li>Enfoca el código QR de tu DNI argentino.</li>
+                <li>Los datos se procesarán y mostrarán automáticamente.</li>
+                <li>Usa <strong>Detener Escaneo</strong> para apagar la cámara.</li>
+            </ol>
+        </section>
+        
+        <section id="reader" aria-label="Escáner de QR"></section>
+
+        <div id="loading" class="loading" aria-live="polite" aria-busy="true" hidden>
+            <span class="spinner"></span> Accediendo a la cámara...
+        </div>
+        
+        <section>
+            <button id="startButton" aria-label="Iniciar escaneo de DNI">Iniciar Escaneo</button>
+            <button id="stopButton" aria-label="Detener escaneo de DNI" disabled>Detener Escaneo</button>
+        </section>
+        
+        <section aria-label="Resultado del escaneo">
+            <h2>Datos del DNI:</h2>
+            <div id="result">Esperando escaneo...</div>
+        </section>
+        
+        <section id="dataDisplay" style="display: none;" aria-label="Datos detectados del DNI">
+            <h2>Datos detectados:</h2>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Campo</th>
+                        <th>Valor</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Apellido</td>
+                        <td id="apellido"></td>
+                    </tr>
+                    <tr>
+                        <td>Nombre</td>
+                        <td id="nombre"></td>
+                    </tr>
+                    <tr>
+                        <td>DNI</td>
+                        <td id="dni"></td>
+                    </tr>
+                    <tr>
+                        <td>Nacionalidad</td>
+                        <td id="nacionalidad"></td>
+                    </tr>
+                    <tr>
+                        <td>Fecha de Nacimiento</td>
+                        <td id="fecha"></td>
+                    </tr>
+                </tbody>
+            </table>
+            <button id="submitButton" aria-label="Enviar datos" disabled>Enviar Datos</button>
+        </section>
+    </main>
+    <script src="script.js"></script>
+</body>
+</html>
