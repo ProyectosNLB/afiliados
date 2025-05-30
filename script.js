@@ -1,5 +1,5 @@
 // script.js - Lector de DNI Argentino PDF417
-// Selecciona la cámara de mayor resolución (generalmente la trasera) por defecto
+// Selecciona la cámara trasera/de mayor capacidad por defecto
 
 const { ZXingBrowser } = window.ZXing;
 const { BrowserMultiFormatReader, BarcodeFormat } = ZXing;
@@ -49,19 +49,17 @@ function parsearPDF417(text) {
     };
 }
 
+// Selecciona la cámara trasera o la de mayor resolución
 async function seleccionarMejorCamara(devices) {
-    // Busca la cámara trasera o la de mayor resolución
-    // Prioriza etiquetas con 'back', 'trasera', 'rear', o la que tenga mayor capacidad (si info disponible)
+    // Prioriza etiquetas con 'back', 'trasera', 'rear', o 'environment'
     let backCams = devices.filter(d =>
         /back|trasera|rear|environment/i.test(d.label)
     );
     if (backCams.length > 0) {
-        // Si hay varias traseras, elige la primera
         return backCams[0].deviceId;
     }
-    // Si no hay trasera, busca la de mayor capacidad (si label lo indica)
+    // Busca la de mayor resolución si es posible (por label)
     let sorted = [...devices].sort((a, b) => {
-        // Busca resolución en el label, ej: "1920x1080"
         const getRes = label => {
             const match = label.match(/(\d{3,4})\D+(\d{3,4})/);
             return match ? parseInt(match[1], 10) * parseInt(match[2], 10) : 0;
