@@ -1,5 +1,6 @@
 // script.js - Lector de DNI Argentino Mejorado
 // Ajuste rectangular del área de escaneo para el QR del DNI Argentino
+// Corrección de mapeo de campos y eliminación de nacionalidad
 
 // Referencias a elementos del DOM
 const html5QrCode = new Html5Qrcode("reader");
@@ -23,12 +24,11 @@ const config = {
 // Función para validar los campos del DNI
 function validarCampos(campos) {
     return (
-        campos.length >= 5 &&
+        campos.length >= 6 &&
         campos[0].trim() !== "" &&
         campos[1].trim() !== "" &&
-        campos[2].trim() !== "" &&
         campos[3].trim() !== "" &&
-        /^\d{8}$/.test(campos[4])
+        /^\d{8}$/.test(campos[5])
     );
 }
 
@@ -53,18 +53,18 @@ function onScanSuccess(decodedText, decodedResult) {
             const campos = decodedText.split("@");
             if (validarCampos(campos)) {
                 dniData = {
-                    apellido: campos[0].trim(),
-                    nombre: campos[1].trim(),
-                    dni: campos[2].trim(),
-                    nacionalidad: campos[3].trim(),
-                    fechaNacimiento: `${campos[4].substring(0, 4)}-${campos[4].substring(4, 6)}-${campos[4].substring(6, 8)}`
+                    apellido: campos[0]?.trim() || "",
+                    nombre: campos[1]?.trim() || "",
+                    dni: campos[3]?.trim() || "",
+                    fechaNacimiento: /^\d{8}$/.test(campos[5]) 
+                        ? `${campos[5].substring(0,4)}-${campos[5].substring(4,6)}-${campos[5].substring(6,8)}`
+                        : "Fecha inválida"
                 };
 
                 // Mostrar los datos en la tabla
                 document.getElementById("apellido").textContent = dniData.apellido;
                 document.getElementById("nombre").textContent = dniData.nombre;
                 document.getElementById("dni").textContent = dniData.dni;
-                document.getElementById("nacionalidad").textContent = dniData.nacionalidad;
                 document.getElementById("fecha").textContent = dniData.fechaNacimiento;
 
                 // Mostrar la sección de datos y habilitar "Enviar"
@@ -146,14 +146,13 @@ stopButton.addEventListener("click", () => {
 
 // Enviar datos al formulario de Google
 submitButton.addEventListener("click", () => {
-    if (dniData.apellido && dniData.nombre && dniData.dni && dniData.nacionalidad && dniData.fechaNacimiento) {
+    if (dniData.apellido && dniData.nombre && dniData.dni && dniData.fechaNacimiento) {
         // Construir la URL del formulario con los datos
         const formUrl = "https://docs.google.com/forms/d/e/1nKrWnalh-FZ1J0pVYU_Ysp07k3zvkuR8ivAorhJwGGQ/viewform";
         const prefilledUrl = `${formUrl}?` +
             `entry.1070769273=${encodeURIComponent(dniData.apellido)}&` +
             `entry.1754481886=${encodeURIComponent(dniData.nombre)}&` +
             `entry.1546660382=${encodeURIComponent(dniData.dni)}&` +
-            `entry.835584076=${encodeURIComponent(dniData.nacionalidad)}&` +
             `entry.1113672182=${encodeURIComponent(dniData.fechaNacimiento)}`;
 
         window.location.href = prefilledUrl;
