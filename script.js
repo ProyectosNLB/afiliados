@@ -1,4 +1,5 @@
 // script.js - Lector de DNI Argentino Mejorado
+// Ajuste rectangular del área de escaneo para el QR del DNI Argentino
 
 // Referencias a elementos del DOM
 const html5QrCode = new Html5Qrcode("reader");
@@ -13,9 +14,10 @@ const loadingDiv = document.getElementById("loading");
 let dniData = {};
 
 // Configuración del escáner
+// El área de escaneo ahora es rectangular, adaptada a la forma del código QR del DNI Argentino
 const config = { 
     fps: 10,
-    qrbox: { width: 250, height: 250 }
+    qrbox: { width: 350, height: 120 } // Rectangular horizontal, ideal para el QR del DNI
 };
 
 // Función para validar los campos del DNI
