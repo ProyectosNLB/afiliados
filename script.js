@@ -1,5 +1,5 @@
 // script.js - Lector de DNI Argentino PDF417
-// Requiere ZXing-js (PDF417 compatible)
+// Selecciona la cámara de mayor resolución (generalmente la trasera) por defecto
 
 const { ZXingBrowser } = window.ZXing;
 const { BrowserMultiFormatReader, BarcodeFormat } = ZXing;
@@ -49,6 +49,28 @@ function parsearPDF417(text) {
     };
 }
 
+async function seleccionarMejorCamara(devices) {
+    // Busca la cámara trasera o la de mayor resolución
+    // Prioriza etiquetas con 'back', 'trasera', 'rear', o la que tenga mayor capacidad (si info disponible)
+    let backCams = devices.filter(d =>
+        /back|trasera|rear|environment/i.test(d.label)
+    );
+    if (backCams.length > 0) {
+        // Si hay varias traseras, elige la primera
+        return backCams[0].deviceId;
+    }
+    // Si no hay trasera, busca la de mayor capacidad (si label lo indica)
+    let sorted = [...devices].sort((a, b) => {
+        // Busca resolución en el label, ej: "1920x1080"
+        const getRes = label => {
+            const match = label.match(/(\d{3,4})\D+(\d{3,4})/);
+            return match ? parseInt(match[1], 10) * parseInt(match[2], 10) : 0;
+        };
+        return getRes(b.label) - getRes(a.label);
+    });
+    return sorted[0].deviceId;
+}
+
 // Escaneo y procesamiento
 async function iniciarEscaneo() {
     mostrarCarga(true);
@@ -61,7 +83,8 @@ async function iniciarEscaneo() {
     codeReader = new BrowserMultiFormatReader();
     try {
         const devices = await codeReader.listVideoInputDevices();
-        selectedDeviceId = devices[0].deviceId;
+        if (!devices || devices.length === 0) throw new Error("No se encontraron cámaras.");
+        selectedDeviceId = await seleccionarMejorCamara(devices);
 
         codeReader.decodeFromVideoDevice(
             selectedDeviceId,
