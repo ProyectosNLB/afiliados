@@ -18,7 +18,7 @@ let dniData = {};
 // Área de escaneo rectangular y horizontal, alineada a la forma y proporción del QR del DNI argentino
 const config = { 
     fps: 10,
-    qrbox: { width: 300, height: 80 } // Rectangular horizontal, abarca el código QR del DNI
+    qrbox: { width: 200, height: 80 } // Rectangular horizontal, abarca el código QR del DNI
 };
 
 // Función para validar los campos del DNI
