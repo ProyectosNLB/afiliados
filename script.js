@@ -51,8 +51,8 @@ function onScanSuccess(decodedText, decodedResult) {
             if (validarCampos(campos)) {
                 dniData = {
                     // Indices ajustados según el formato anterior que funcionaba
-                    apellido: campos[2].trim(),
-                    nombre: campos[3].trim(),
+                    apellido: campos[1].trim(),
+                    nombre: campos[2].trim(),
                     dni: campos[1].trim(),
                     fechaNacimiento: campos[7].length === 8
                         ? `${campos[7].substring(6, 8)}/${campos[7].substring(4, 6)}/${campos[7].substring(0, 4)}`
