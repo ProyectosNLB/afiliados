@@ -3,28 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lector de DNI Argentino PDF417</title>
+    <title>Lector de DNI Argentino</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
-    <!-- ZXing library from CDN -->
-    <script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 </head>
 <body>
     <main>
-        <h1>Lector de DNI Argentino (PDF417)</h1>
+        <h1>Lector de DNI Argentino</h1>
+        
         <section class="instructions" aria-label="Instrucciones de uso">
             <h2>Instrucciones:</h2>
             <ol>
                 <li>Haz clic en <strong>Iniciar Escaneo</strong> para activar la cámara.</li>
-                <li>Enfoca el código de barras PDF417 de tu DNI argentino.</li>
+                <li>Enfoca el código QR de tu DNI argentino.</li>
                 <li>Los datos se procesarán y mostrarán automáticamente.</li>
                 <li>Usa <strong>Detener Escaneo</strong> para apagar la cámara.</li>
             </ol>
         </section>
-
-        <section>
-            <video id="video" width="420" height="120" style="object-fit:cover; border:2px solid #4CAF50; border-radius:8px; margin:12px 0;" autoplay muted></video>
-        </section>
+        
+        <section id="reader" aria-label="Escáner de QR"></section>
 
         <div id="loading" class="loading" aria-live="polite" aria-busy="true" hidden>
             <span class="spinner"></span> Accediendo a la cámara...
@@ -34,7 +32,7 @@
             <button id="startButton" aria-label="Iniciar escaneo de DNI">Iniciar Escaneo</button>
             <button id="stopButton" aria-label="Detener escaneo de DNI" disabled>Detener Escaneo</button>
         </section>
-
+        
         <section aria-label="Resultado del escaneo">
             <h2>Datos del DNI:</h2>
             <div id="result">Esperando escaneo...</div>
@@ -61,6 +59,10 @@
                     <tr>
                         <td>DNI</td>
                         <td id="dni"></td>
+                    </tr>
+                    <tr>
+                        <td>Nacionalidad</td>
+                        <td id="nacionalidad"></td>
                     </tr>
                     <tr>
                         <td>Fecha de Nacimiento</td>
