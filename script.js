@@ -1,3 +1,6 @@
+// script.js - Lector de DNI Argentino Mejorado
+
+// Referencias a elementos del DOM
 const html5QrCode = new Html5Qrcode("reader");
 const startButton = document.getElementById("startButton");
 const stopButton = document.getElementById("stopButton");
@@ -6,32 +9,37 @@ const dataDisplay = document.getElementById("dataDisplay");
 const submitButton = document.getElementById("submitButton");
 const loadingDiv = document.getElementById("loading");
 
+// Variables para almacenar los datos del DNI
 let dniData = {};
 
+// Configuración del escáner: área rectangular horizontal para el QR del DNI
 const config = { 
     fps: 10,
-    qrbox: { width: 350, height: 120 }
+    qrbox: { width: 350, height: 120 } // Área rectangular para facilitar el escaneo del QR del DNI
 };
 
-// Ajusta la validación a los índices correctos
+// Función para validar los campos del DNI (puedes ajustar la lógica según el formato real)
 function validarCampos(campos) {
     return (
-        campos.length >= 10 &&
-        campos[2].trim() !== "" &&
-        campos[3].trim() !== "" &&
+        campos.length >= 8 &&
+        campos[4].trim() !== "" &&
+        campos[5].trim() !== "" &&
         campos[1].trim() !== "" &&
-        campos[6].trim() !== ""
+        campos[7].trim() !== ""
     );
 }
 
+// Habilita o deshabilita el botón "Enviar" según los datos
 function actualizarBotonEnviar(valido) {
     submitButton.disabled = !valido;
 }
 
+// Muestra u oculta el indicador de carga
 function mostrarCarga(mostrar) {
     loadingDiv.hidden = !mostrar;
 }
 
+// Maneja el escaneo exitoso
 function onScanSuccess(decodedText, decodedResult) {
     html5QrCode.stop().then(() => {
         startButton.disabled = false;
@@ -42,21 +50,24 @@ function onScanSuccess(decodedText, decodedResult) {
             const campos = decodedText.split("@");
             if (validarCampos(campos)) {
                 dniData = {
-                    apellido: campos[2].trim(),
-                    nombre: campos[3].trim(),
+                    // Indices ajustados según el formato anterior que funcionaba
+                    apellido: campos[4].trim(),
+                    nombre: campos[5].trim(),
                     dni: campos[1].trim(),
-                    nacionalidad: campos[4].trim(), // Si tu QR no trae nacionalidad puedes dejarlo ""
-                    fechaNacimiento: campos[6].length === 8
-                        ? `${campos[6].substring(6, 8)}/${campos[6].substring(4, 6)}/${campos[6].substring(0, 4)}`
-                        : campos[6].trim()
+                    nacionalidad: campos[2].trim(),
+                    fechaNacimiento: campos[7].length === 8
+                        ? `${campos[7].substring(6, 8)}/${campos[7].substring(4, 6)}/${campos[7].substring(0, 4)}`
+                        : campos[7].trim()
                 };
 
+                // Mostrar los datos en la tabla
                 document.getElementById("apellido").textContent = dniData.apellido;
                 document.getElementById("nombre").textContent = dniData.nombre;
                 document.getElementById("dni").textContent = dniData.dni;
                 document.getElementById("nacionalidad").textContent = dniData.nacionalidad;
                 document.getElementById("fecha").textContent = dniData.fechaNacimiento;
 
+                // Mostrar la sección de datos y habilitar "Enviar"
                 dataDisplay.style.display = "block";
                 actualizarBotonEnviar(true);
 
@@ -78,6 +89,7 @@ function onScanSuccess(decodedText, decodedResult) {
     });
 }
 
+// Iniciar escaneo
 startButton.addEventListener("click", () => {
     startButton.disabled = true;
     stopButton.disabled = false;
@@ -95,6 +107,7 @@ startButton.addEventListener("click", () => {
     });
 });
 
+// Detener escaneo
 stopButton.addEventListener("click", () => {
     html5QrCode.stop().then(() => {
         startButton.disabled = false;
