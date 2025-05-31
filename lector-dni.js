@@ -16,8 +16,28 @@ function actualizarBotonEnviar(valido) {
     submitButton.disabled = !valido;
 }
 
-function mostrarCarga(mostrar) {
+function mostrarCarga(mostrar, mensaje = "Cargando cámara...") {
+    loadingDiv.innerHTML = `<span class="spinner"></span> ${mensaje}`;
     loadingDiv.style.display = mostrar ? "block" : "none";
+}
+
+function mostrarError(msg) {
+    resultDiv.innerHTML = `<strong style="color:red;">${msg}</strong>`;
+}
+
+function limpiarDatos() {
+    dataDisplay.style.display = "none";
+    actualizarBotonEnviar(false);
+    dniData = {};
+}
+
+function mostrarDatos(d) {
+    document.getElementById("apellido").textContent = d.apellido || "-";
+    document.getElementById("nombre").textContent = d.nombre || "-";
+    document.getElementById("dni").textContent = d.dni || "-";
+    document.getElementById("fecha").textContent = d.fechaNacimiento || "-";
+    dataDisplay.style.display = "block";
+    actualizarBotonEnviar(true);
 }
 
 function validarCampos(campos) {
@@ -44,6 +64,7 @@ function parsearQRDNI(decodedText) {
 }
 
 function parsearPDF417DNI(decodedText) {
+    // Puedes mejorar este parser para adaptarlo a tu necesidad
     let dni = decodedText.match(/([0-9]{7,8})/);
     let fecha = decodedText.match(/([1-2][0-9]{7})/); // AAAAMMDD
     return {
@@ -54,20 +75,6 @@ function parsearPDF417DNI(decodedText) {
     }
 }
 
-function mostrarDatos(dniData) {
-    document.getElementById("apellido").textContent = dniData.apellido || "-";
-    document.getElementById("nombre").textContent = dniData.nombre || "-";
-    document.getElementById("dni").textContent = dniData.dni || "-";
-    document.getElementById("fecha").textContent = dniData.fechaNacimiento || "-";
-    dataDisplay.style.display = "block";
-    actualizarBotonEnviar(true);
-}
-
-function limpiarDatos() {
-    dataDisplay.style.display = "none";
-    actualizarBotonEnviar(false);
-}
-
 function detenerEscaneo() {
     if (codeReader) {
         codeReader.reset();
@@ -75,6 +82,27 @@ function detenerEscaneo() {
         startButton.disabled = false;
         stopButton.disabled = true;
         mostrarCarga(false);
+        resultDiv.innerHTML = "";
+    }
+}
+
+async function verificarPermisos() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        mostrarError("Este navegador no soporta acceso a la cámara.");
+        mostrarCarga(false);
+        startButton.disabled = false;
+        stopButton.disabled = true;
+        return false;
+    }
+    try {
+        await navigator.mediaDevices.getUserMedia({ video: true });
+        return true;
+    } catch (e) {
+        mostrarError("No se pudo acceder a la cámara. Dale permisos desde la configuración del navegador.");
+        mostrarCarga(false);
+        startButton.disabled = false;
+        stopButton.disabled = true;
+        return false;
     }
 }
 
@@ -83,11 +111,14 @@ startButton.addEventListener("click", async () => {
     resultDiv.textContent = "";
     startButton.disabled = true;
     stopButton.disabled = false;
-    mostrarCarga(true);
+    mostrarCarga(true, "Cargando cámara...");
 
-    if (!codeReader) {
+    // Verifica soporte y permisos antes de continuar
+    const tienePermiso = await verificarPermisos();
+    if (!tienePermiso) return;
+
+    if (!codeReader)
         codeReader = new BrowserMultiFormatReader();
-    }
 
     scanning = true;
 
@@ -98,7 +129,7 @@ startButton.addEventListener("click", async () => {
     };
 
     try {
-        console.log("Antes de decodeFromConstraints"); // <- Mejora sugerida
+        console.log("Antes de decodeFromConstraints");
         await codeReader.decodeFromConstraints(
             constraints,
             video,
@@ -114,7 +145,7 @@ startButton.addEventListener("click", async () => {
                             mostrarDatos(datos);
                             resultDiv.innerHTML = "<strong>DNI (QR) escaneado correctamente:</strong> Verifique los datos antes de enviar.";
                         } else {
-                            resultDiv.innerHTML = "<strong>Error:</strong> El QR no corresponde a un DNI argentino válido.";
+                            mostrarError("El QR no corresponde a un DNI argentino válido.");
                             limpiarDatos();
                         }
                     } else if (result.barcodeFormat === BarcodeFormat.PDF_417) {
@@ -124,29 +155,31 @@ startButton.addEventListener("click", async () => {
                             mostrarDatos(datos);
                             resultDiv.innerHTML = "<strong>DNI (PDF417) escaneado correctamente:</strong> Verifique los datos antes de enviar.";
                         } else {
-                            resultDiv.innerHTML = "<strong>Error:</strong> No se pudo leer un DNI válido en el código de barras.";
+                            mostrarError("No se pudo leer un DNI válido en el código de barras.");
                             limpiarDatos();
                         }
                     } else {
-                        resultDiv.textContent = "Formato no soportado.";
+                        mostrarError("Formato no soportado.");
                         limpiarDatos();
                     }
                 }
                 if (err && !(err instanceof NotFoundException)) {
-                    resultDiv.textContent = "Error: " + err;
+                    mostrarError("Error: " + err);
+                    console.error(err);
                 }
             },
             {
                 formats: [BarcodeFormat.QR_CODE, BarcodeFormat.PDF_417]
             }
         );
-        console.log("Después de decodeFromConstraints"); // <- Mejora sugerida
+        console.log("Después de decodeFromConstraints");
         mostrarCarga(false);
     } catch (error) {
         mostrarCarga(false);
         startButton.disabled = false;
         stopButton.disabled = true;
-        resultDiv.innerHTML = `<strong>Error al iniciar el escáner:</strong> ${error.message}`;
+        mostrarError(`Error al iniciar el escáner: ${error.message}`);
+        console.error("Error al iniciar el escáner:", error);
     }
 });
 
