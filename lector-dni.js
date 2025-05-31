@@ -98,6 +98,7 @@ startButton.addEventListener("click", async () => {
     };
 
     try {
+        console.log("Antes de decodeFromConstraints"); // <- Mejora sugerida
         await codeReader.decodeFromConstraints(
             constraints,
             video,
@@ -139,6 +140,7 @@ startButton.addEventListener("click", async () => {
                 formats: [BarcodeFormat.QR_CODE, BarcodeFormat.PDF_417]
             }
         );
+        console.log("Después de decodeFromConstraints"); // <- Mejora sugerida
         mostrarCarga(false);
     } catch (error) {
         mostrarCarga(false);
