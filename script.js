@@ -1,4 +1,4 @@
-// script.js - Lector de DNI Argentino Mejorado
+// script.js - Lector de DNI Argentino Mejorado y Adaptado para Android/iOS
 
 // Referencias a elementos del DOM
 const html5QrCode = new Html5Qrcode("reader");
@@ -12,13 +12,18 @@ const loadingDiv = document.getElementById("loading");
 // Variables para almacenar los datos del DNI
 let dniData = {};
 
-// Configuración del escáner: área rectangular horizontal para el QR del DNI
+// Configuración del escáner: área rectangular horizontal para el QR del DNI, adaptable a cualquier móvil/tablet
 const config = { 
     fps: 10,
-    qrbox: { width: 350, height: 120 } // Área rectangular para facilitar el escaneo del QR del DNI
+    qrbox: function(viewfinderWidth, viewfinderHeight) {
+        // Cálculo adaptable: 85% del ancho, y relación de aspecto 3:1 (ancho:alto)
+        const width = Math.floor(viewfinderWidth * 0.85);
+        const height = Math.floor(width / 3);
+        return { width, height };
+    }
 };
 
-// Función para validar los campos del DNI (puedes ajustar la lógica según el formato real)
+// Función para validar los campos del DNI (ajusta esta lógica según el formato real)
 function validarCampos(campos) {
     return (
         campos.length >= 8 &&
@@ -93,7 +98,7 @@ startButton.addEventListener("click", () => {
     stopButton.disabled = false;
     mostrarCarga(true);
     html5QrCode.start(
-        { facingMode: "environment" },
+        { facingMode: "environment" }, // Siempre usa cámara trasera si es posible
         config,
         onScanSuccess
     ).catch(error => {
