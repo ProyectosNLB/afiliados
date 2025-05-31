@@ -24,8 +24,8 @@ function validarCampos(campos) {
         campos.length >= 8 &&
         campos[1].trim() !== "" &&
         campos[2].trim() !== "" &&
-        campos[5].trim() !== "" &&
-        campos[6].trim() !== ""
+        campos[7].trim() !== "" &&
+        campos[8].trim() !== ""
     );
 }
 
@@ -53,8 +53,8 @@ function onScanSuccess(decodedText, decodedResult) {
                     // Indices ajustados según el formato anterior que funcionaba
                     apellido: campos[1].trim(),
                     nombre: campos[2].trim(),
-                    dni: campos[5].trim(),
-                    fechaNacimiento: campos[6].length === 8
+                    dni: campos[7].trim(),
+                    fechaNacimiento: campos[8].length === 8
                         ? `${campos[7].substring(6, 8)}/${campos[7].substring(4, 6)}/${campos[7].substring(0, 4)}`
                         : campos[7].trim()
                 };
