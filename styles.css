@@ -11,8 +11,13 @@ main {
     width: 100%;
 }
 
-#video {
-    background: #222;
+#reader {
+    width: 100%;
+    max-width: 500px;
+    margin: 20px auto;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
 }
 
 #result {
