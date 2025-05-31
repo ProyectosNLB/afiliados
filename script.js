@@ -12,21 +12,21 @@ const loadingDiv = document.getElementById("loading");
 // Variables para almacenar los datos del DNI
 let dniData = {};
 
-// Configuración del escáner
+// Configuración del escáner: área rectangular horizontal para el QR del DNI
 const config = { 
     fps: 10,
-    qrbox: { width: 250, height: 250 }
+    qrbox: { width: 350, height: 120 } // Área rectangular para facilitar el escaneo del QR del DNI
 };
 
-// Función para validar los campos del DNI
+// Función para validar los campos del DNI (puedes ajustar la lógica según el formato real)
 function validarCampos(campos) {
     return (
-        campos.length >= 5 &&
-        campos[0].trim() !== "" &&
+        campos.length >= 8 &&
+        campos[4].trim() !== "" &&
+        campos[5].trim() !== "" &&
         campos[1].trim() !== "" &&
         campos[2].trim() !== "" &&
-        campos[3].trim() !== "" &&
-        /^\d{8}$/.test(campos[4])
+        campos[7].trim() !== ""
     );
 }
 
@@ -51,11 +51,14 @@ function onScanSuccess(decodedText, decodedResult) {
             const campos = decodedText.split("@");
             if (validarCampos(campos)) {
                 dniData = {
-                    apellido: campos[0].trim(),
-                    nombre: campos[1].trim(),
-                    dni: campos[2].trim(),
-                    nacionalidad: campos[3].trim(),
-                    fechaNacimiento: `${campos[4].substring(0, 4)}-${campos[4].substring(4, 6)}-${campos[4].substring(6, 8)}`
+                    // Indices ajustados según el formato estándar del QR argentino
+                    apellido: campos[4].trim(),
+                    nombre: campos[5].trim(),
+                    dni: campos[1].trim(),
+                    nacionalidad: campos[2].trim(),
+                    fechaNacimiento: campos[7].length === 8
+                        ? `${campos[7].substring(0, 4)}-${campos[7].substring(4, 6)}-${campos[7].substring(6, 8)}`
+                        : campos[7].trim()
                 };
 
                 // Mostrar los datos en la tabla
@@ -87,75 +90,32 @@ function onScanSuccess(decodedText, decodedResult) {
     });
 }
 
-// Maneja errores del escaneo (no se muestra al usuario para no ser intrusivo)
-function onScanError(errorMessage) {
-    // Puedes descomentar la siguiente línea para depurar:
-    // console.warn("Escaneo fallido:", errorMessage);
-}
-
 // Iniciar escaneo
 startButton.addEventListener("click", () => {
+    startButton.disabled = true;
+    stopButton.disabled = false;
     mostrarCarga(true);
-    Html5Qrcode.getCameras().then(devices => {
-        if (devices && devices.length) {
-            // Usar cámara trasera si existe
-            const cameraId = devices.find(device => 
-                device.label.toLowerCase().includes("back"))?.id || devices[0].id;
-
-            html5QrCode.start(
-                cameraId,
-                config,
-                onScanSuccess,
-                onScanError
-            ).then(() => {
-                startButton.disabled = true;
-                stopButton.disabled = false;
-                dataDisplay.style.display = "none";
-                actualizarBotonEnviar(false);
-                resultDiv.textContent = "Escaneando...";
-                mostrarCarga(false);
-            }).catch(err => {
-                mostrarCarga(false);
-                resultDiv.innerHTML = "Error al iniciar el escáner: " + err;
-            });
-        } else {
-            mostrarCarga(false);
-            resultDiv.textContent = "No se encontraron cámaras disponibles.";
-        }
-    }).catch(err => {
+    html5QrCode.start(
+        { facingMode: "environment" },
+        config,
+        onScanSuccess
+    ).catch(error => {
+        console.error("Error al iniciar el escáner:", error);
+        resultDiv.innerHTML = `<strong>Error al iniciar el escáner:</strong> ${error.message}`;
+        startButton.disabled = false;
+        stopButton.disabled = true;
         mostrarCarga(false);
-        resultDiv.textContent = "Error al acceder a la cámara: " + err;
     });
 });
 
 // Detener escaneo
 stopButton.addEventListener("click", () => {
-    mostrarCarga(true);
     html5QrCode.stop().then(() => {
         startButton.disabled = false;
         stopButton.disabled = true;
-        resultDiv.textContent = "Escaneo detenido.";
         mostrarCarga(false);
-    }).catch(err => {
-        mostrarCarga(false);
-        resultDiv.textContent = "Error al detener el escáner: " + err;
+    }).catch(error => {
+        console.error("Error al detener el escáner:", error);
+        resultDiv.innerHTML = `<strong>Error al detener el escáner:</strong> ${error.message}`;
     });
-});
-
-// Enviar datos al formulario de Google
-submitButton.addEventListener("click", () => {
-    if (dniData.apellido && dniData.nombre && dniData.dni && dniData.nacionalidad && dniData.fechaNacimiento) {
-        // Construir la URL del formulario con los datos
-        const formUrl = "https://docs.google.com/forms/d/e/1nKrWnalh-FZ1J0pVYU_Ysp07k3zvkuR8ivAorhJwGGQ/viewform";
-        const prefilledUrl = `${formUrl}?` +
-            `entry.1070769273=${encodeURIComponent(dniData.apellido)}&` +
-            `entry.1754481886=${encodeURIComponent(dniData.nombre)}&` +
-            `entry.1546660382=${encodeURIComponent(dniData.dni)}&` +
-            `entry.835584076=${encodeURIComponent(dniData.nacionalidad)}&` +
-            `entry.1113672182=${encodeURIComponent(dniData.fechaNacimiento)}`;
-
-        window.location.href = prefilledUrl;
-    } else {
-        resultDiv.innerHTML = "<strong>Error:</strong> No hay datos válidos para enviar.";
-    }
 });
