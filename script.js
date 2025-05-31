@@ -22,9 +22,9 @@ const config = {
 function validarCampos(campos) {
     return (
         campos.length >= 8 &&
-        campos[4].trim() !== "" &&
+        campos[2].trim() !== "" &&
+        campos[3].trim() !== "" &&
         campos[5].trim() !== "" &&
-        campos[1].trim() !== "" &&
         campos[7].trim() !== ""
     );
 }
@@ -51,10 +51,9 @@ function onScanSuccess(decodedText, decodedResult) {
             if (validarCampos(campos)) {
                 dniData = {
                     // Indices ajustados según el formato anterior que funcionaba
-                    apellido: campos[4].trim(),
-                    nombre: campos[5].trim(),
-                    dni: campos[1].trim(),
-                    nacionalidad: campos[2].trim(),
+                    apellido: campos[2].trim(),
+                    nombre: campos[3].trim(),
+                    dni: campos[5].trim(),
                     fechaNacimiento: campos[7].length === 8
                         ? `${campos[7].substring(6, 8)}/${campos[7].substring(4, 6)}/${campos[7].substring(0, 4)}`
                         : campos[7].trim()
@@ -64,7 +63,6 @@ function onScanSuccess(decodedText, decodedResult) {
                 document.getElementById("apellido").textContent = dniData.apellido;
                 document.getElementById("nombre").textContent = dniData.nombre;
                 document.getElementById("dni").textContent = dniData.dni;
-                document.getElementById("nacionalidad").textContent = dniData.nacionalidad;
                 document.getElementById("fecha").textContent = dniData.fechaNacimiento;
 
                 // Mostrar la sección de datos y habilitar "Enviar"
